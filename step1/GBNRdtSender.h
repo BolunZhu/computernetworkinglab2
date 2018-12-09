@@ -5,8 +5,8 @@ class GBNRdtSender : public RdtSender{
     static const unsigned int N = 4;//window_len = 4
     unsigned int base ;
     unsigned int nextnum ;
-    unsigned int _base(){return base&(N-1);};
-    unsigned int _nextnum(){return nextnum&(N-1);};
+    unsigned int _base(){return base&(7);};
+    unsigned int _nextnum(){return nextnum&(7);};
     Packet pkt[N];
     public:
     //构造 析构函数
@@ -24,13 +24,17 @@ class GBNRdtSender : public RdtSender{
 GBNRdtSender::GBNRdtSender():base(0),nextnum(0){
 
 }
+GBNRdtSender::~GBNRdtSender(){}
+bool GBNRdtSender::getWaitingState(){
+    return _nextnum()==_base()+N;
+}
 bool GBNRdtSender::send(Message &message) {
-    if(_nextnum()<_base()||_nextnum()>=_base()+N){
+    if(getWaitingState()){//full
         return false;
     }
-    
-    pkt[_nextnum()].acknum=base;
-    pkt[_nextnum()].checksum=pUtils->calculateCheckSum(pkt);
-    pkt[_nextnum()].seqnum=_nextnum();
+    //_nextnum()&3 = nextnum in N
+    pkt[_nextnum()&3].acknum=base;
+    pkt[_nextnum()&3].checksum=pUtils->calculateCheckSum(pkt[_nextnum()&3]);
+    pkt[_nextnum()&3].seqnum=_nextnum();
     pns->sendToNetworkLayer(SENDER,pkt[_nextnum()]);
 }
